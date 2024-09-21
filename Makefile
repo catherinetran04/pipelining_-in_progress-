@@ -1,27 +1,36 @@
-CFLAGS = -Wall -Werror -g
-CC = gcc $(CFLAGS)
+AN = proj3
+SHELL = /bin/bash
+CWD = $(shell pwd | sed 's/.*\///g')
 
-all: par_word_lengths
+.PHONY: all clean clean-tests zip
 
-par_word_lengths: par_word_lengths.c
-	$(CC) -o $@ $^
+all: part1 part2
+
+test: test-part1 test-part2
+
+part1:
+	$(MAKE) -C part1
+
+part2:
+	$(MAKE) -C part2
+
+test-part1:
+	$(MAKE) -C part1 test
+
+test-part2:
+	$(MAKE) -C part2 test
 
 clean:
-	rm -f par_word_lengths
-
-test-setup:
-	@chmod u+x testius
-
-ifdef testnum
-test: test-setup par_word_lengths
-	./testius test_cases/tests.json -v -n $(testnum)
-else
-test: test-setup par_word_lengths
-	./testius test_cases/tests.json
-endif
+	$(MAKE) -C part1 clean
+	$(MAKE) -C part2 clean
 
 clean-tests:
-	rm -rf test_results
+	$(MAKE) -C part1 clean-tests
+	$(MAKE) -C part2 clean-tests
 
-zip:
-	@echo "ERROR: You cannot run 'make zip' from the part1 subdirectory. Change to the main proj3-code directory and run 'make zip' there."
+zip: clean clean-tests
+	rm -f $(AN)-code.zip
+	cd .. && zip "$(CWD)/$(AN)-code.zip" -r "$(CWD)" -x "$(CWD)/part1/testius" "$(CWD)/part1/test_cases/*" "$(CWD)/part2/testius" "$(CWD)/part2/test_cases/*"
+	@echo Zip created in $(AN)-code.zip
+	@if (( $$(stat -c '%s' $(AN)-code.zip) > 10*(2**20) )); then echo "WARNING: $(AN)-code.zip seems REALLY big, check there are no abnormally large test files"; du -h $(AN)-code.zip; fi
+	@if (( $$(unzip -t $(AN)-code.zip | wc -l) > 256 )); then echo "WARNING: $(AN)-code.zip has 256 or more files in it which may cause submission problems"; fi
